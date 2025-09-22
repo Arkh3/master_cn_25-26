@@ -14,8 +14,42 @@ import warnings
 import numpy as np
 import matplotlib.pyplot as plt
 
-from typing import Callable
+from typing import Callable, Tuple
 
+
+########################### 1 ###########################
+
+# Plot of Taylor approximations of different orders
+def plot_taylor_approximation(
+    function: Callable[[float], float], 
+    function_derivative: Callable[[float, int], float], 
+    K: int,
+    x_0: float,
+    interval_plot: Tuple[float, float],
+    figure_size: Tuple[int, int],
+) -> None:
+    
+    x = np.linspace(*interval_plot, num=1000)
+    y_exact = function(x)
+    y_taylor = taylor_approximation(x, function, function_derivative, K, x_0)
+    
+    fig, axs = plt.subplots(K + 1, 2, sharex=True, figsize=figure_size)
+    
+    for k, y in enumerate(y_taylor):
+        axs[k, 0].plot(x, y_exact, label='exact')
+        axs[k, 0].plot(x, y_taylor[k, :], label='Taylor(k = {:d})'.format(k))
+        axs[k, 0].set_xlabel('$x$')
+        axs[k, 0].set_ylabel('$f(x)$')
+        axs[k, 0].legend()
+    
+        error = y_taylor[k, :] - y_exact 
+        axs[k, 1].plot(x, error, label='error')
+        axs[k, 1].set_xlabel('$x$')
+        axs[k, 1].set_ylabel('$error$')
+        axs[k, 1].legend()
+        axs[k, 1].axhline(y = 0.0, color = 'k', linestyle = ':')
+
+        
 def taylor_approximation(
     x: np.ndarray, 
     function: Callable[[float], float], 
@@ -60,11 +94,96 @@ def taylor_approximation(
     approximation = np.empty((K+1, len(x)))
     approximation[0, :] = function(x_0)
     
-    for k in range(K):
+    for k in range(1, K+1):
         approximation[k, :] = approximation[k-1, :] + \
             function_derivative(x_0, k) * (x - x_0)**k / math.factorial(k)
     
     return approximation
+
+
+########################### 2 ###########################
+
+def plot_taylor_approximation_with_series_term(
+    function: Callable[[float], float], 
+    series_term: Callable[[float, int], float], 
+    K: int,
+    x_0: float,
+    interval_plot: Tuple[float, float],
+    figure_size: Tuple[int, int],
+) -> None:
+    
+    x = np.linspace(*interval_plot, num=1000)
+    y_exact = function(x)
+    y_taylor = taylor_approximation_with_series_term(x, function, series_term, K) # x_0 is always taken as 0.0
+    
+    fig, axs = plt.subplots(K + 1, 2, sharex=True, figsize=figure_size)
+    
+    for k, y in enumerate(y_taylor):
+        axs[k, 0].plot(x, y_exact, label='exact')
+        axs[k, 0].plot(x, y_taylor[k, :], label='Taylor(k = {:d})'.format(k))
+        axs[k, 0].set_xlabel('$x$')
+        axs[k, 0].set_ylabel('$f(x)$')
+        axs[k, 0].legend()
+    
+        error = y_taylor[k, :] - y_exact 
+        axs[k, 1].plot(x, error, label='error')
+        axs[k, 1].set_xlabel('$x$')
+        axs[k, 1].set_ylabel('$error$')
+        axs[k, 1].legend()
+        axs[k, 1].axhline(y = 0.0, color = 'k', linestyle = ':')
+
+ 
+def taylor_approximation_with_series_term(
+    x: np.ndarray, 
+    function: Callable[[float], float], 
+    series_term: Callable[[float, int], float], 
+    K: int,
+    x_0: float = 0.0
+) -> np.ndarray:
+    """ Taylor approximation of a function
+
+    Args:
+        x: Point at which the approximation es evaluated. 
+        function: Function to be approximated.  
+        function_derivative: Derivative of the function.
+        K: Order of the approximation (degree of the Taylor polynomial).
+        x_0: Point about which the approximation is made.
+
+    Returns:
+        Array with the Taylor approximations of the function for different orders. 
+        The kth row in the array yields the order k approximation of the function.
+
+    Example:    
+        >>> x = np.array([-1.0, 0.0, 1.0])
+        >>> y = taylor_approximation(
+        ...         x,    
+        ...         function=lambda x: np.exp(- x), 
+        ...         function_derivative=lambda x, k: (1- 2 * (k % 2)) * np.exp(- x), 
+        ...         K=8,
+        ...     )
+        >>> print(np.round(y, 6))
+        [[1.       1.       1.      ]
+         [2.       1.       0.      ]
+         [2.5      1.       0.5     ]
+         [2.666667 1.       0.333333]
+         [2.708333 1.       0.375   ]
+         [2.716667 1.       0.366667]
+         [2.718056 1.       0.368056]
+         [2.718254 1.       0.367857]
+         [2.718279 1.       0.367882]]
+        >>> print(np.round(np.exp(- x), 6))
+        [2.718282 1.       0.367879]
+    """ 
+    approximation = np.empty((K+1, len(x)))
+    approximation[0, :] = series_term(x_0, 0)
+    
+    for k in range(1, K + 1):
+        approximation[k, :] = approximation[k-1, :] + series_term(x, k)
+    
+    return approximation
+
+
+################################################################################
 
 
 def numerical_derivative(
