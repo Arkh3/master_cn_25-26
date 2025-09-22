@@ -60,8 +60,12 @@ def taylor_approximation(
     approximation = np.empty((K+1, len(x)))
     approximation[0, :] = function(x_0)
     
-    #  TO DO: Your code goes here        
+    for k in range(K):
+        approximation[k, :] = approximation[k-1, :] + \
+            function_derivative(x_0, k) * (x - x_0)**k / math.factorial(k)
+    
     return approximation
+
 
 def numerical_derivative(
     f: Callable[[np.ndarray], np.ndarray],
