@@ -175,7 +175,7 @@ def taylor_approximation_with_series_term(
         [2.718282 1.       0.367879]
     """ 
     approximation = np.empty((K+1, len(x)))
-    approximation[0, :] = series_term(x_0, 0)
+    approximation[0, :] = series_term(x, 0)
     
     for k in range(1, K + 1):
         approximation[k, :] = approximation[k-1, :] + series_term(x, k)
