@@ -12,6 +12,7 @@ Created on Sun 2024-09-22
 import math
 import warnings
 import numpy as np
+import mpmath as mp
 import matplotlib.pyplot as plt
 
 from typing import Callable, Tuple
@@ -182,6 +183,81 @@ def taylor_approximation_with_series_term(
     
     return approximation
 
+
+########################### 3 ###########################
+
+def stirling_approx(n, order):
+    """ Return log(n!) using Stirling's approximation up to a given order """
+    
+    # base of the approximation
+    approx = n * math.log(n) - n + 0.5 * math.log(2 * math.pi * n)
+    
+    # coefficients for 1/(12n), -1/(360n^3), 1/(1260n^5), -1/(1680n^7), ...
+    bernoulli_coeffs = [1/12, -1/360, 1/1260, -1/1680, 1/1188]
+    
+    for k in range(order):
+        term = bernoulli_coeffs[k] / (n ** (2*k + 1))
+        approx += term
+    
+    return approx
+
+
+def plot_stirling_errors(orders):
+    # Compare errors
+    N_values = np.arange(10, 500, 10)  # factorial sizes
+    errors = {order: [] for order in orders}
+
+    for n in N_values:
+        log_fact_exact = math.log(math.factorial(n))
+        for order in orders:
+            log_fact_approx = stirling_approx(n, order)
+            # absolute error in log domain
+            err = abs(log_fact_exact - log_fact_approx)
+            errors[order].append(err)
+
+    # Plot
+    plt.figure(figsize=(8,6))
+    for order in orders:
+        plt.plot(N_values, errors[order], label=f"Order {order}")
+    plt.yscale("log")
+    plt.xlabel("n")
+    plt.ylabel("Absolute error in log(n!)")
+    plt.title("Error of Stirling's approximation with different truncation orders")
+    plt.legend()
+    plt.grid(True, which="both", linestyle="--", alpha=0.6)
+    plt.show()
+
+
+def stirling_approx_order_zero(n):
+    """Zeroth-order Stirling approximation of n!"""
+    return math.sqrt(2 * mp.pi * n) * (n / mp.e) ** n
+
+
+def find_stirlings_relative_error(relative_error_thresholds):
+    MAX_ITER = 100000
+    
+    # thresholds
+    results = {}
+
+    # search for each threshold
+    for thr in relative_error_thresholds:
+        
+        N = 1
+        while N < MAX_ITER:
+            # Compute relative error
+            fact = math.factorial(N)
+            approx = stirling_approx_order_zero(N)
+            err = abs(fact - approx) / fact
+            
+            if err < thr:
+                results[thr] = N
+                break
+                
+            N += 1
+        if N == MAX_ITER:
+            print("WARN: the loop exited because it reached the maximun number of iterations.")
+
+    return results
 
 ################################################################################
 
