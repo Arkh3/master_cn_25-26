@@ -15,7 +15,7 @@ import numpy as np
 import mpmath as mp
 import matplotlib.pyplot as plt
 
-from typing import Callable, Tuple
+from typing import Callable, Tuple, Union
 
 
 ########################### 1 ###########################
@@ -259,91 +259,15 @@ def find_stirlings_relative_error(relative_error_thresholds):
 
     return results
 
-################################################################################
 
 
-def numerical_derivative(
-    f: Callable[[np.ndarray], np.ndarray],
-    x0: float,
-    h: float = 1.0e-6,
-    unitless_h: bool = True,
-) -> float:
-    """ Estimate of the derivative by divided (central) differences.
-
-    Args:
-        f: Function whose derivative we wish to determine.
-        x0: Point at which the derivative is computed.
-        h: Increment.
-
-    Returns:
-        A numerical estimate of the derivative.
-        
-    Examples:
-       
-        >>> 1.0 - numerical_derivative(np.exp, 0.0, unitless_h=False)
-        2.6755486715046572e-11
-        
-        >>> numerical_derivative(np.exp, np.array([1.0, 2.0]))
-        array([2.71828183, 7.3890561 ])
-
-        >>> x = np.reshape(np.logspace(-101, 101, 6), (2, 3))
-        >>> f = np.sqrt
-        >>> df_dx = lambda x: 0.5 / np.sqrt(x) 
-        >>> 1.0 - numerical_derivative(f, x) / df_dx(x) # relative error
-        array([[-8.37323544e-11,  8.13707990e-11,  2.04004591e-11],
-               [-1.92157401e-12,  2.61047850e-11,  9.60679314e-11]])
-
-    """
-    
-    if unitless_h:
-        return         #  TO DO: Your code goes here
-    else:                    
-        return         #  TO DO: Your code goes here
-
-
-def numerical_second_derivative(
-    f: Callable[[np.ndarray], np.ndarray],
-    x0: float,
-    h: float = 1.0e-4,
-    unitless_h: bool = True,
-) -> float:
-    """ Estimate of the second derivative by divided differences.
-
-    Args:
-        f: Function whose derivative we wish to determine.
-        x0: Point at which the derivative is computed.
-        h: Increment.
-        unitless_h: whether h has has no units (i.e. it is scaled by x0) 
-
-    Returns:
-        A numerical estimate of the derivative.
-        
-    Examples:
-       
-        >>> 1.0 - numerical_second_derivative(np.exp, 0.0, unitless_h=False)
-        -5.024759275329416e-09
-        
-        >>> numerical_second_derivative(np.exp, np.array([1.0, 2.0]))
-        array([2.71828187, 7.3890561 ])
-
-        >>> x = np.reshape(np.logspace(-101, 101, 6), (2, 3))
-        >>> f = np.sqrt
-        >>> d2f_dx2 = lambda x: -0.25 / x / np.sqrt(x) 
-        >>> 1.0 - numerical_second_derivative(f, x) / d2f_dx2(x) # relative error
-        array([[-5.31950879e-08,  3.18853937e-08, -2.63389912e-08],
-               [ 9.54296209e-09,  7.32422989e-08,  1.94053817e-08]])
-    """
-    
-    if unitless_h:
-        return      #  TO DO: Your code goes here        
-    else:                    
-        return      #  TO DO: Your code goes here
+########################### 5 ###########################
 
 def bisection(
     f: Callable,
     x_low: float,
     x_up: float,
-    tol_abs: float,
+    tol_abs: float = 1.0e-6,
     max_iters: int = 100
 ) -> float:
     r""" Zero of the function :math:`f` using the bisection method.
@@ -393,23 +317,43 @@ def bisection(
         warnings.warn('No sign change in [{}, {}]'.format(x_low, x_up))
         return np.nan, np.nan 
     
-    iter = 0
+    n_iter = 0
     x_mid = 0.5 * (x_low + x_up)    
     delta_x = 0.5 * (x_up - x_low)
     
-    #  TO DO: Your code goes here
+    #  Your code goes here
+    
+    while (delta_x > tol_abs) and n_iter < max_iters:
+        x_mid = (x_up + x_low) / 2
+        delta_x = (x_up - x_low) / 2
 
-    if iter == max_iters: 
+        if f(x_mid) * f(x_up) < 0:
+            x_low = x_mid
+
+        elif f(x_mid) * f(x_low) < 0:
+            x_up = x_mid
+            
+        else:
+            x_low = x_mid
+            x_up = x_mid
+
+        n_iter += 1
+    
+    #####
+
+    if n_iter == max_iters: 
         warnings.warn('Maximum number of iterations reached.')
      
     return x_mid, delta_x
+
+
 
 
 def newton_raphson(
     f: Callable,
     df_dx: Callable,
     seed: float,
-    tol_abs: float,
+    tol_abs: float = 1.0e-6,
     max_iters: int = 50,
 ) -> float:
     """ Zero of the function :math:`f` using the Newton-Raphson method.
@@ -458,22 +402,116 @@ def newton_raphson(
     if tol_abs is None:
         tol_abs = np.finfo(float).tiny
         
-    
-    iter = 0
+    n_iter = 0
     x = seed
     
-    if (df_dx(x) == 0.0):
+    if np.isclose(df_dx(x), 0.0):
         warnings.warn('Newton-Raphson does not converge with this seed')
         return np.nan, np.nan
     
     #  TO DO: Your code goes here
+    
+    delta_x = f(x) / df_dx(x)
 
-
-    if iter == max_iters: 
+    while (abs(delta_x) > tol_abs) and n_iter < max_iters:
+        if df_dx(x) == 0:
+            return float('NaN'), float('NaN')
+            
+        x = x - delta_x
+        
+        delta_x = f(x) / df_dx(x)
+        
+        n_iter += 1
+    
+    ####
+    
+    if n_iter == max_iters: 
         warnings.warn('Maximum number of iterations reached.')
      
     return x, np.abs(delta_x)
+
+
+def secant(
+    f: Callable,
+    a: float,
+    b: float,
+    tol_abs: float = 1.0e-6,
+    max_iters: int = 100
+) -> float:
     
+    if (f(a) * f(b)) > 0.0 or a > b:
+        warnings.warn('No sign change in [{}, {}]'.format(a, b))
+        return np.nan, np.nan 
+    
+    n_iter = 0
+    
+    while b - a > tol_abs and n_iter < max_iters:
+        
+        c = a - f(a) * (b - a) / (f(b) - f(a))
+        
+        a = min(b, c)
+        b = max(b, c)
+
+        n_iter += 1
+
+    if n_iter == max_iters: 
+        warnings.warn('Maximum number of iterations reached.')
+     
+    return c, b - a
+
+
+
+def vectorized_newton_raphson(
+    f: Callable[[np.ndarray], np.ndarray],
+    df_dx: Callable[[np.ndarray], np.ndarray],
+    seed: Union[float, np.ndarray],
+    tol_abs: float = 1.0e-6,
+    tol_rel: float = None,
+    max_iters: int = 50
+) -> np.ndarray:
+    """
+    Vectorized Newton-Raphson method.
+    Works for a single float seed or a numpy array of seeds.
+    Returns (roots, last_update).
+    """
+
+    # Ensure seed is an array
+    x = np.atleast_1d(seed).astype(float)
+
+    # Initialize update and iteration counter
+    delta = np.full_like(x, np.inf)
+    iters = 0
+
+    # Mask of "still converging" points
+    active = np.ones_like(x, dtype=bool)
+
+    while np.any(active) and iters < max_iters:
+        f_val = f(x[active])
+        df_val = df_dx(x[active])
+
+        # If derivative is zero → mark as NaN
+        zero_deriv = df_val == 0
+        if np.any(zero_deriv):
+            x[active][zero_deriv] = np.nan
+            delta[active][zero_deriv] = np.nan
+            active[np.where(active)[0][zero_deriv]] = False
+            continue
+
+        delta_new = f_val / df_val
+        x[active] = x[active] - delta_new
+        delta[active] = delta_new
+
+        # Check convergence
+        conv = np.abs(delta_new) <= tol_abs
+        active[np.where(active)[0][conv]] = False
+
+        iters += 1
+
+    # If user passed a scalar, return scalars
+    if np.isscalar(seed):
+        return x.item(), delta.item()
+    return x, delta
+
 
 
 if __name__ == "__main__":
