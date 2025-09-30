@@ -15,6 +15,7 @@ import numpy as np
 import mpmath as mp
 import matplotlib.pyplot as plt
 
+from scipy.stats import norm
 from typing import Callable, Tuple, Union
 
 
@@ -486,18 +487,17 @@ def vectorized_newton_raphson(
     active = np.ones_like(x, dtype=bool)
 
     while np.any(active) and iters < max_iters:
-        f_val = f(x[active])
-        df_val = df_dx(x[active])
-
+        f_val = f(x)
+        df_val = df_dx(x)
+        
         # If derivative is zero → mark as NaN
-        zero_deriv = df_val == 0
-        if np.any(zero_deriv):
+        if np.any(df_val == 0):
             x[active][zero_deriv] = np.nan
             delta[active][zero_deriv] = np.nan
             active[np.where(active)[0][zero_deriv]] = False
             continue
 
-        delta_new = f_val / df_val
+        delta_new = f_val[active] / df_val[active]
         x[active] = x[active] - delta_new
         delta[active] = delta_new
 
@@ -510,7 +510,23 @@ def vectorized_newton_raphson(
     # If user passed a scalar, return scalars
     if np.isscalar(seed):
         return x.item(), delta.item()
+    
     return x, delta
+
+
+def generate_gaussian_sample_with_inverse_method(size=100):
+    # Sample ~ U(0,1) 
+    u = np.random.uniform(0, 1, size=size)
+
+    # Define the functions for the Newton Raphson step
+    f = lambda x: norm.cdf(x) - u
+    df_dx = lambda x: norm.pdf(x)
+    
+    seed = np.zeros_like(u)# for a N(0,1) 0 is a good estimate of the actual root
+    
+    f_zero, error = vectorized_newton_raphson(f, df_dx, seed=seed) 
+
+    return f_zero
 
 
 
